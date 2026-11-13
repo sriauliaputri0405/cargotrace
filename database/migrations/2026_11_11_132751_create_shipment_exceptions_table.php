@@ -6,20 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('shipment_exceptions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('shipment_id')->constrained()->cascadeOnDelete();
+            $table->string('type', 30);
+            $table->string('severity', 10);
+            $table->string('status', 20)->default('OPEN')->index();
+            $table->text('description')->nullable();
+            $table->dateTime('detected_at');
+            $table->dateTime('resolved_at')->nullable();
+            $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('shipment_exceptions');

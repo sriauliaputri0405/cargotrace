@@ -6,20 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('tracking_events', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('shipment_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('location_id')->nullable()->constrained();
+            $table->string('event_type', 30);
+            $table->dateTime('occurred_at');
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
+            $table->text('description')->nullable();
+            $table->boolean('is_exception')->default(false);
+            $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
+            $table->index(['shipment_id', 'occurred_at']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('tracking_events');
