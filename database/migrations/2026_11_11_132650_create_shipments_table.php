@@ -18,6 +18,10 @@ return new class extends Migration
             $table->string('cargo_type', 50);
             $table->decimal('weight_kg', 10, 2);
             $table->decimal('volume_cbm', 10, 2)->nullable();
+            $table->decimal('freight_cost', 14, 2)->nullable();
+            $table->char('currency_code', 3)->default('USD');
+            $table->decimal('exchange_rate', 18, 8)->nullable();
+            $table->decimal('freight_cost_idr', 16, 2)->nullable();
             $table->dateTime('expected_departure_at');
             $table->dateTime('expected_arrival_at');
             $table->dateTime('estimated_arrival_at')->nullable();
