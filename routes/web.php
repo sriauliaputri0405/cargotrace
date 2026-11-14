@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CarrierController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,6 +27,10 @@ Route::middleware(['auth', 'role:admin,operator'])->prefix('operations')->group(
 
 Route::middleware(['auth', 'role:customer,admin'])->prefix('my-shipments')->group(function () {
     Route::get('/', fn () => 'Area Customer');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('carriers', CarrierController::class)->except('show');
 });
 
 require __DIR__.'/auth.php';
