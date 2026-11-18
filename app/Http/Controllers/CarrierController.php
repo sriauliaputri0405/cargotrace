@@ -2,63 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\CarrierRequest;
+use App\Models\Carrier;
 
 class CarrierController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $carriers = Carrier::withCount('shipments')->orderBy('name')->paginate(10);
+
+        return view('carriers.index', compact('carriers'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('carriers.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(CarrierRequest $request)
     {
-        //
+        Carrier::create($request->validated());
+
+        return redirect()->route('carriers.index')->with('status', 'Carrier berhasil ditambahkan.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(Carrier $carrier)
     {
-        //
+        return view('carriers.edit', compact('carrier'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function update(CarrierRequest $request, Carrier $carrier)
     {
-        //
+        $carrier->update($request->validated());
+
+        return redirect()->route('carriers.index')->with('status', 'Carrier berhasil diperbarui.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy(Carrier $carrier)
     {
-        //
-    }
+        // Carrier yang sudah dipakai shipment tidak boleh dihapus (menjaga integritas data)
+        if ($carrier->shipments()->exists()) {
+            return back()->withErrors(['carrier' => 'Carrier masih dipakai oleh shipment, tidak bisa dihapus.']);
+        }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $carrier->delete();
+
+        return redirect()->route('carriers.index')->with('status', 'Carrier berhasil dihapus.');
     }
 }
