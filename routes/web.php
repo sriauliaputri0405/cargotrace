@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CarrierController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
@@ -38,4 +39,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('carriers', CarrierController::class)->except('show');
 });
 
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('carriers', CarrierController::class)->except('show');
+    Route::resource('locations', LocationController::class)->except('show');
+});
 require __DIR__.'/auth.php';
