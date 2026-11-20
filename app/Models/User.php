@@ -42,6 +42,11 @@ class User extends Authenticatable
         return $this->role === self::ROLE_CUSTOMER;
     }
 
+    public function isStaff(): bool
+    {
+        return $this->isAdmin() || $this->isOperator();
+    }
+
     public function shipments(): HasMany
     {
         return $this->hasMany(Shipment::class, 'customer_id');
