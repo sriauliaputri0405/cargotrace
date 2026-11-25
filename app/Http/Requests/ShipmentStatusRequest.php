@@ -12,7 +12,7 @@ class ShipmentStatusRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return in_array($this->user()->role, ['admin', 'operator']);
     }
 
     /**
@@ -23,7 +23,9 @@ class ShipmentStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'status'      => ['required', 'string'],
+            'location_id' => ['nullable', 'integer', 'exists:locations,id'],
+            'note'        => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

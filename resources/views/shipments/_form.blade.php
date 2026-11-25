@@ -116,15 +116,15 @@
     </div>
 
     <div>
-        <x-input-label for="currency_code" value="Mata uang (kode 3 huruf, mis. USD)" />
-        <x-text-input id="currency_code" name="currency_code" list="currency-list" maxlength="3"
-                      class="block mt-1 w-full uppercase"
-                      :value="old('currency_code', $s->currency_code ?? 'USD')" />
-        <datalist id="currency-list">
-            @foreach (['USD', 'EUR', 'SGD', 'JPY', 'CNY', 'AUD', 'GBP', 'IDR'] as $code)
-                <option value="{{ $code }}">
+        <x-input-label for="currency_code" value="Mata uang" />
+        <select id="currency_code" name="currency_code" class="{{ $select }}">
+            @foreach (config('currencies') as $code => $name)
+                <option value="{{ $code }}"
+                    @selected(old('currency_code', $s->currency_code ?? 'USD') === $code)>
+                    {{ $code }} — {{ $name }}
+                </option>
             @endforeach
-        </datalist>
+        </select>
         <x-input-error :messages="$errors->get('currency_code')" class="mt-2" />
     </div>
 

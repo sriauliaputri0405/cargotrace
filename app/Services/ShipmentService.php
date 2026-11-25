@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Location;
 use App\Models\Shipment;
+use App\Models\TrackingEvent;
 use App\Models\User;
+use Carbon\Carbon;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,6 +32,10 @@ class ShipmentService
         'exchange_rate', 'freight_cost_idr', 'expected_departure_at',
         'expected_arrival_at', 'status',
     ];
+
+    public function __construct(private EtaService $eta)
+    {
+    }
 
     public function allowedNext(string $status): array
     {
@@ -56,7 +63,6 @@ class ShipmentService
 
             $shipment->items()->createMany(array_values($items));
 
-            // Event pertama di timeline
             $shipment->trackingEvents()->create([
                 'location_id' => $shipment->origin_id,
                 'event_type'  => 'CREATED',
@@ -80,6 +86,9 @@ class ShipmentService
             $shipment->items()->delete();
             $shipment->items()->createMany(array_values($items));
 
+            // Expected arrival bisa berubah, jadi status keterlambatan dihitung ulang
+            $this->eta->evaluate($shipment);
+
             $this->audit($actor, 'shipment.updated', $shipment, $old, $shipment->only(self::AUDITED));
 
             return $shipment;
@@ -102,7 +111,15 @@ class ShipmentService
                 throw new DomainException("Status tidak bisa berubah dari {$old} ke {$new}.");
             }
 
-            $locked->update(['status' => $new]);
+            $attributes = ['status' => $new];
+
+            // Saat DELIVERED, waktu tiba sebenarnya dipakai sebagai estimated arrival final
+            if ($new === 'DELIVERED') {
+                $attributes['estimated_arrival_at'] = now();
+            }
+
+            $locked->update($attributes);
+            $this->eta->evaluate($locked);
 
             // Riwayat bersifat historis: hanya ditambah, tidak pernah menimpa
             $locked->trackingEvents()->create([
@@ -117,6 +134,61 @@ class ShipmentService
 
             return $locked;
         });
+    }
+
+    public function addEvent(Shipment $shipment, array $data, User $actor): TrackingEvent
+    {
+        return DB::transaction(function () use ($shipment, $data, $actor) {
+            $occurred = Carbon::parse($data['occurred_at']);
+            $last = $shipment->trackingEvents()->max('occurred_at');
+
+            // Validasi urutan waktu (dibandingkan sampai menit)
+            if ($last !== null && $occurred->lt(Carbon::parse($last)->startOfMinute())) {
+                throw new DomainException(
+                    'Waktu kejadian tidak boleh lebih awal dari event terakhir ('
+                    . Carbon::parse($last)->format('d M Y H:i') . ').'
+                );
+            }
+
+            $lat = $data['latitude'] ?? null;
+            $lng = $data['longitude'] ?? null;
+
+            // Kalau koordinat tidak diisi, pakai koordinat dari lokasi yang dipilih
+            if (! empty($data['location_id']) && $lat === null && $lng === null) {
+                $location = Location::find($data['location_id']);
+                $lat = $location?->latitude;
+                $lng = $location?->longitude;
+            }
+
+            $event = $shipment->trackingEvents()->create([
+                'location_id'  => $data['location_id'] ?? null,
+                'event_type'   => $data['event_type'],
+                'occurred_at'  => $occurred,
+                'latitude'     => $lat,
+                'longitude'    => $lng,
+                'description'  => $data['description'] ?? null,
+                'is_exception' => false,
+                'created_by'   => $actor->id,
+            ]);
+
+            $this->audit($actor, 'tracking.added', $shipment, null, [
+                'event_type'  => $event->event_type,
+                'occurred_at' => $event->occurred_at->toDateTimeString(),
+            ]);
+
+            return $event;
+        });
+    }
+
+    /** Lokasi terkini = event terbaru yang punya lokasi. */
+    public function currentLocationEvent(Shipment $shipment): ?TrackingEvent
+    {
+        return $shipment->trackingEvents()
+            ->whereNotNull('location_id')
+            ->with('location')
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     public function delete(Shipment $shipment, User $actor): void

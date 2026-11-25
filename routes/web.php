@@ -6,6 +6,8 @@ use App\Http\Controllers\CarrierController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\ExceptionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,5 +51,18 @@ Route::middleware('auth')->group(function () {
     Route::resource('shipments', ShipmentController::class);
     Route::patch('shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])
         ->name('shipments.status');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('tracking', [TrackingController::class, 'index'])->name('tracking.index');
+});
+
+Route::middleware(['auth', 'role:admin,operator'])->group(function () {
+    Route::post('shipments/{shipment}/tracking', [TrackingController::class, 'store'])->name('tracking.store');
+    Route::patch('shipments/{shipment}/eta', [TrackingController::class, 'updateEta'])->name('shipments.eta');
+
+    Route::get('exceptions', [ExceptionController::class, 'index'])->name('exceptions.index');
+    Route::post('shipments/{shipment}/exceptions', [ExceptionController::class, 'store'])->name('exceptions.store');
+    Route::patch('exceptions/{exception}', [ExceptionController::class, 'updateStatus'])->name('exceptions.status');
 });
 require __DIR__.'/auth.php';

@@ -78,13 +78,18 @@ class ShipmentController extends Controller
 
         $shipment->load([
             'customer', 'carrier', 'origin', 'destination', 'items',
+            'exceptions'     => fn ($q) => $q->orderByDesc('detected_at'),
             'trackingEvents' => fn ($q) => $q->with(['location', 'creator'])->orderBy('occurred_at')->orderBy('id'),
         ]);
 
         return view('shipments.show', [
-            'shipment'     => $shipment,
-            'nextStatuses' => $this->service->allowedNext($shipment->status),
-            'locations'    => Location::orderBy('country')->orderBy('city')->get(),
+            'shipment'       => $shipment,
+            'nextStatuses'   => $this->service->allowedNext($shipment->status),
+            'locations'      => Location::orderBy('country')->orderBy('city')->get(),
+            'currentEvent'   => $this->service->currentLocationEvent($shipment),
+            'delayInfo'      => app(\App\Services\EtaService::class)->explain($shipment),
+            'eventTypes'     => config('cargotrace.event_types'),
+            'exceptionTypes' => config('cargotrace.exception_types'),
         ]);
     }
 

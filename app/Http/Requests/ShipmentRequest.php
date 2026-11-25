@@ -29,7 +29,7 @@ class ShipmentRequest extends FormRequest
             'weight_kg'             => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
             'volume_cbm'            => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'freight_cost'          => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
-            'currency_code'         => ['required', 'string', 'size:3', 'alpha'],
+            'currency_code'         => ['required', Rule::in(array_keys(config('currencies')))],
             'expected_departure_at' => ['required', 'date'],
             'expected_arrival_at'   => ['required', 'date', 'after:expected_departure_at'],
             'items'                 => ['required', 'array', 'min:1'],

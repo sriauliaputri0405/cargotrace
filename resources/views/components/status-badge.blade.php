@@ -10,10 +10,13 @@
     ];
 @endphp
 
-@if ($shipment->is_delayed)
+@if ($shipment->is_delayed && $shipment->status !== 'DELIVERED')
     <span class="px-2 py-1 rounded text-xs bg-red-100 text-red-700">DELAYED</span>
 @else
     <span class="px-2 py-1 rounded text-xs {{ $map[$shipment->status] ?? 'bg-gray-100 text-gray-700' }}">
         {{ str_replace('_', ' ', $shipment->status) }}
     </span>
+    @if ($shipment->is_delayed)
+        <span class="ms-1 px-2 py-1 rounded text-xs bg-amber-100 text-amber-700">LATE</span>
+    @endif
 @endif
