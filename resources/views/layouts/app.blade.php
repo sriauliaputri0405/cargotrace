@@ -2,6 +2,7 @@
     $user = auth()->user();
     $all = ['admin', 'operator', 'customer'];
     $staff = ['admin', 'operator'];
+    $unread = $user->unreadNotifications()->count();
 
     // Setiap menu punya nama route. Kalau route-nya belum ada, tampil abu-abu "Segera".
     $menu = [
@@ -12,6 +13,8 @@
         ['label' => 'Carriers',   'route' => 'carriers.index',   'match' => 'carriers.*',   'roles' => ['admin']],
         ['label' => 'Locations',  'route' => 'locations.index',  'match' => 'locations.*',  'roles' => ['admin']],
         ['label' => 'Reports',    'route' => 'reports.index',    'match' => 'reports.*',    'roles' => $staff],
+        ['label' => 'Users',      'route' => 'users.index',      'match' => 'users.*',      'roles' => ['admin']],
+        ['label' => 'Audit Log',  'route' => 'audit-logs.index', 'match' => 'audit-logs.*', 'roles' => ['admin']],
     ];
 @endphp
 <!DOCTYPE html>
@@ -74,23 +77,34 @@
                 @endisset
             </div>
 
-            <x-dropdown align="right" width="48">
-                <x-slot name="trigger">
-                    <button class="inline-flex items-center text-sm text-gray-600 hover:text-gray-800">
-                        {{ $user->name }} <span class="ms-1">▾</span>
-                    </button>
-                </x-slot>
-                <x-slot name="content">
-                    <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <x-dropdown-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();">
-                            Log Out
-                        </x-dropdown-link>
-                    </form>
-                </x-slot>
-            </x-dropdown>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('notifications.index') }}" class="relative p-2 text-gray-500 hover:text-gray-800" aria-label="Notifikasi">
+                    🔔
+                    @if ($unread > 0)
+                        <span class="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-600 text-white text-[10px] leading-[1.1rem] text-center">
+                            {{ $unread > 99 ? '99+' : $unread }}
+                        </span>
+                    @endif
+                </a>
+
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center text-sm text-gray-600 hover:text-gray-800">
+                            {{ $user->name }} <span class="ms-1">▾</span>
+                        </button>
+                    </x-slot>
+                    <x-slot name="content">
+                        <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <x-dropdown-link :href="route('logout')"
+                                onclick="event.preventDefault(); this.closest('form').submit();">
+                                Log Out
+                            </x-dropdown-link>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
+            </div>
         </header>
 
         <main class="flex-1 p-4 sm:p-6">

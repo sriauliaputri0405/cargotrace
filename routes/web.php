@@ -10,6 +10,9 @@ use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\ExceptionController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\UserController;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -85,5 +88,20 @@ Route::middleware(['auth', 'role:admin,operator'])->group(function () {
 Route::middleware(['auth', 'role:admin,operator'])->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::get('notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('users', [UserController::class, 'store'])->name('users.store');
+    Route::patch('users/{user}/role', [UserController::class, 'updateRole'])->name('users.role');
+
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
 require __DIR__.'/auth.php';
