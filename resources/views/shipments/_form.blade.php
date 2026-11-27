@@ -129,15 +129,57 @@
     </div>
 
     @if ($isStaff)
-        <div class="md:col-span-2">
-            <x-input-label for="exchange_rate" value="Kurs ke IDR (1 satuan mata uang = berapa rupiah)" />
-            <x-text-input id="exchange_rate" name="exchange_rate" type="number" step="any" class="block mt-1 w-full"
-                          :value="old('exchange_rate', $s->exchange_rate ?? '')" />
-            <p class="mt-1 text-xs text-gray-500">Kosongkan jika belum ada. Jika mata uangnya IDR, kurs otomatis 1.</p>
-            <x-input-error :messages="$errors->get('exchange_rate')" class="mt-2" />
+    <div class="md:col-span-2" x-data="fxRate()">
+        <x-input-label for="exchange_rate" value="Kurs ke IDR (1 satuan mata uang = berapa rupiah)" />
+        <div class="flex gap-2">
+            <x-text-input id="exchange_rate" name="exchange_rate" type="number" step="any"
+                          class="block mt-1 w-full" :value="old('exchange_rate', $s->exchange_rate ?? '')" />
+            <button type="button" @click="fetchRate()" :disabled="loading"
+                    class="mt-1 px-3 py-2 text-sm border rounded-md whitespace-nowrap disabled:opacity-50">
+                Ambil kurs terbaru
+            </button>
         </div>
-    @endif
-</div>
+        <p class="mt-1 text-xs" :class="error ? 'text-red-600' : 'text-gray-500'"
+           x-text="error || note || 'Kosongkan jika belum ada. Jika mata uangnya IDR, kurs otomatis 1.'"></p>
+        <x-input-error :messages="$errors->get('exchange_rate')" class="mt-2" />
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('fxRate', () => ({
+                loading: false,
+                note: '',
+                error: '',
+
+                async fetchRate() {
+                    const code = document.getElementById('currency_code').value;
+                    this.loading = true;
+                    this.note = '';
+                    this.error = '';
+
+                    try {
+                        const response = await fetch('{{ route('fx.rate') }}?currency=' + encodeURIComponent(code), {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        const json = await response.json();
+
+                        if (!response.ok || !json.ok) {
+                            this.error = json.message ?? 'Kurs tidak tersedia. Isi manual.';
+                            return;
+                        }
+
+                        document.getElementById('exchange_rate').value = json.rate;
+                        this.note = 'Kurs ' + json.currency + ' = Rp ' + json.rate + ' (tanggal ' + json.date + ', sumber ' + json.source + ')';
+                    } catch (e) {
+                        this.error = 'Layanan kurs tidak dapat dihubungi. Isi kurs manual.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+            }));
+        });
+    </script>
+@endif
 
 {{-- Daftar barang (baris bisa ditambah dan dihapus) --}}
 <div class="mt-6" x-data="{ items: @js($initialItems) }">

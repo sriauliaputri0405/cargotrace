@@ -8,7 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\ExceptionController;
-
+use App\Http\Controllers\IntegrationController;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -64,5 +64,20 @@ Route::middleware(['auth', 'role:admin,operator'])->group(function () {
     Route::get('exceptions', [ExceptionController::class, 'index'])->name('exceptions.index');
     Route::post('shipments/{shipment}/exceptions', [ExceptionController::class, 'store'])->name('exceptions.store');
     Route::patch('exceptions/{exception}', [ExceptionController::class, 'updateStatus'])->name('exceptions.status');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('shipments/{shipment}/weather', [IntegrationController::class, 'weather'])
+        ->middleware('throttle:30,1')->name('shipments.weather');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('geocode', [IntegrationController::class, 'geocode'])
+        ->middleware('throttle:10,1')->name('geocode.search');
+});
+
+Route::middleware(['auth', 'role:admin,operator'])->group(function () {
+    Route::get('fx-rate', [IntegrationController::class, 'fxRate'])
+        ->middleware('throttle:20,1')->name('fx.rate');
 });
 require __DIR__.'/auth.php';

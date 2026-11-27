@@ -90,6 +90,7 @@ class ShipmentController extends Controller
             'delayInfo'      => app(\App\Services\EtaService::class)->explain($shipment),
             'eventTypes'     => config('cargotrace.event_types'),
             'exceptionTypes' => config('cargotrace.exception_types'),
+            'mapData'        => app(\App\Services\MapService::class)->forShipment($shipment),
         ]);
     }
 

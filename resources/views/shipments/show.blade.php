@@ -101,6 +101,45 @@
             </div>
 
             <div class="bg-white shadow-sm rounded-lg p-6">
+                {{-- Peta rute --}}
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-semibold text-gray-800 mb-3">Peta rute</h3>
+                <x-shipment-map :data="$mapData" />
+                <p class="mt-2 text-xs text-gray-500">
+                    Hijau: asal · Merah: tujuan · Biru: titik tracking · Kuning: posisi terakhir. Garis putus-putus: rute rencana.
+                </p>
+            </div>
+
+            {{-- Cuaca: dimuat terpisah agar halaman tidak menunggu layanan eksternal --}}
+            <div class="bg-white shadow-sm rounded-lg p-6"
+                x-data="{ state: 'loading', info: {}, error: '' }"
+                x-init="fetch('{{ route('shipments.weather', $shipment) }}', { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+                    .then(({ ok, j }) => {
+                        if (ok && j.ok) { info = j; state = 'ok'; }
+                        else { error = j.message ?? 'Data cuaca tidak tersedia.'; state = 'error'; }
+                    })
+                    .catch(() => { error = 'Layanan cuaca tidak dapat dihubungi.'; state = 'error'; })">
+                <h3 class="font-semibold text-gray-800 mb-3">Cuaca di lokasi terkini</h3>
+
+                <p x-show="state === 'loading'" class="text-sm text-gray-500">Memuat data cuaca...</p>
+                <p x-show="state === 'error'" x-cloak x-text="error" class="text-sm text-amber-700"></p>
+
+                <div x-show="state === 'ok'" x-cloak class="text-sm text-gray-700 space-y-1">
+                    <p x-text="info.place"></p>
+                    <p>
+                        <span x-text="info.description"></span>,
+                        <span x-text="info.temperature"></span> <span x-text="info.temperature_unit"></span>,
+                        angin <span x-text="info.wind_speed"></span> <span x-text="info.wind_unit"></span>
+                    </p>
+                    <p class="text-xs text-gray-400">Waktu data: <span x-text="info.time"></span></p>
+                </div>
+
+                <p class="mt-3 text-xs text-gray-400">
+                    Informasi cuaca hanya referensi dan bukan bukti atau prediksi keterlambatan.
+                    Data: <a href="https://open-meteo.com/" class="underline" target="_blank" rel="noopener">Open-Meteo.com</a>.
+                </p>
+            </div>
                 <h3 class="font-semibold text-gray-800 mb-3">Barang</h3>
                 <table class="min-w-full text-sm">
                     <thead class="text-left text-gray-500">

@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Shipment;
 use App\Models\ShipmentException;
+use App\Services\MapService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke(Request $request, MapService $maps)
     {
         $user = $request->user();
 
@@ -35,6 +36,8 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboard', compact('stats', 'openExceptions', 'recent'));
+        $mapData = $maps->forDashboard($user);
+
+        return view('dashboard', compact('stats', 'openExceptions', 'recent', 'mapData'));
     }
 }

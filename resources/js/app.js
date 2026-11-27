@@ -1,4 +1,4 @@
-
+import './shipment-map';
 
 import Alpine from 'alpinejs';
 
