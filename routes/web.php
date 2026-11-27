@@ -9,6 +9,7 @@ use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\ExceptionController;
 use App\Http\Controllers\IntegrationController;
+use App\Http\Controllers\ReportController;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -79,5 +80,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 Route::middleware(['auth', 'role:admin,operator'])->group(function () {
     Route::get('fx-rate', [IntegrationController::class, 'fxRate'])
         ->middleware('throttle:20,1')->name('fx.rate');
+});
+
+Route::middleware(['auth', 'role:admin,operator'])->group(function () {
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
 });
 require __DIR__.'/auth.php';

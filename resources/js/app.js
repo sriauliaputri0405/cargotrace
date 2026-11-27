@@ -1,4 +1,5 @@
 import './shipment-map';
+import './dashboard-charts';
 
 import Alpine from 'alpinejs';
 

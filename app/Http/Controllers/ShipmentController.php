@@ -8,10 +8,14 @@ use App\Models\Carrier;
 use App\Models\Location;
 use App\Models\Shipment;
 use App\Models\User;
+use App\Services\EtaService;
+use App\Services\MapService;
 use App\Services\ShipmentService;
+use Carbon\Carbon;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Throwable;
 
 class ShipmentController extends Controller
 {
@@ -24,11 +28,27 @@ class ShipmentController extends Controller
         Gate::authorize('viewAny', Shipment::class);
         $user = $request->user();
 
+        // Kolom sorting dibatasi daftar putih supaya input pengguna tidak masuk ke query
+        $sort = in_array($request->input('sort'), ['created_at', 'shipment_number', 'expected_arrival_at', 'status'], true)
+            ? $request->input('sort')
+            : 'created_at';
+        $direction = $request->input('direction') === 'asc' ? 'asc' : 'desc';
+
+        $from = $this->parseDate($request->input('from'));
+        $to = $this->parseDate($request->input('to'));
+        $status = $request->input('status');
+
         $shipments = Shipment::query()
             ->with(['customer', 'carrier', 'origin', 'destination'])
             ->when($user->isCustomer(), fn ($q) => $q->where('customer_id', $user->id))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
-            ->when($request->boolean('delayed'), fn ($q) => $q->where('is_delayed', true))
+            ->when(in_array($status, ShipmentService::STATUSES, true), fn ($q) => $q->where('status', $status))
+            ->when($request->filled('carrier_id'), fn ($q) => $q->where('carrier_id', (int) $request->input('carrier_id')))
+            ->when($request->filled('origin_id'), fn ($q) => $q->where('origin_id', (int) $request->input('origin_id')))
+            ->when($request->filled('destination_id'), fn ($q) => $q->where('destination_id', (int) $request->input('destination_id')))
+            ->when($request->input('delay') === 'delayed', fn ($q) => $q->where('is_delayed', true))
+            ->when($request->input('delay') === 'ontime', fn ($q) => $q->where('is_delayed', false))
+            ->when($from, fn ($q) => $q->where('expected_arrival_at', '>=', $from->copy()->startOfDay()))
+            ->when($to, fn ($q) => $q->where('expected_arrival_at', '<=', $to->copy()->endOfDay()))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%' . trim($request->input('q')) . '%';
                 $q->where(function ($w) use ($term) {
@@ -36,13 +56,16 @@ class ShipmentController extends Controller
                       ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $term));
                 });
             })
-            ->latest()
+            ->orderBy($sort, $direction)
+            ->orderByDesc('id')
             ->paginate(10)
             ->withQueryString();
 
         return view('shipments.index', [
             'shipments' => $shipments,
             'statuses'  => ShipmentService::STATUSES,
+            'carriers'  => Carrier::orderBy('name')->get(),
+            'locations' => Location::orderBy('country')->orderBy('city')->get(),
         ]);
     }
 
@@ -62,6 +85,7 @@ class ShipmentController extends Controller
         $items = $data['items'];
         unset($data['items']);
 
+        // Customer selalu membuat shipment atas namanya sendiri
         if ($user->isCustomer()) {
             $data['customer_id'] = $user->id;
         }
@@ -87,10 +111,10 @@ class ShipmentController extends Controller
             'nextStatuses'   => $this->service->allowedNext($shipment->status),
             'locations'      => Location::orderBy('country')->orderBy('city')->get(),
             'currentEvent'   => $this->service->currentLocationEvent($shipment),
-            'delayInfo'      => app(\App\Services\EtaService::class)->explain($shipment),
+            'delayInfo'      => app(EtaService::class)->explain($shipment),
+            'mapData'        => app(MapService::class)->forShipment($shipment),
             'eventTypes'     => config('cargotrace.event_types'),
             'exceptionTypes' => config('cargotrace.exception_types'),
-            'mapData'        => app(\App\Services\MapService::class)->forShipment($shipment),
         ]);
     }
 
@@ -154,5 +178,18 @@ class ShipmentController extends Controller
                 ? User::where('role', 'customer')->orderBy('name')->get()
                 : collect(),
         ];
+    }
+
+    private function parseDate(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

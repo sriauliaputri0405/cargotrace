@@ -7,6 +7,9 @@ return [
         'medium_max' => (int) env('DELAY_MEDIUM_MAX_HOURS', 24),
     ],
 
+    // KPI utama di dashboard: on_time_rate | avg_delay | exception_resolution
+    'primary_kpi' => env('KPI_PRIMARY', 'on_time_rate'),
+
     'event_types' => [
         'LOCATION_UPDATE' => 'Pembaruan lokasi',
         'ARRIVED'         => 'Tiba di lokasi',
