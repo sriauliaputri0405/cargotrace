@@ -9,7 +9,7 @@ Route::name('api.')->group(function () {
     Route::post('register', [Api\AuthController::class, 'register'])->middleware('throttle:6,1')->name('register');
     Route::post('login', [Api\AuthController::class, 'login'])->middleware('throttle:6,1')->name('login');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('logout', [Api\AuthController::class, 'logout'])->name('logout');
         Route::get('user', [Api\AuthController::class, 'user'])->name('user');
 

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -19,8 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role' => RoleMiddleware::class,
         ]);
+
+        // Header keamanan untuk semua respons
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Semua route /api/* selalu dijawab dalam JSON
@@ -36,11 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             [$status, $message] = match (true) {
-                $e instanceof AuthenticationException   => [401, 'Unauthenticated.'],
-                $e instanceof AuthorizationException    => [403, 'This action is unauthorized.'],
-                $e instanceof NotFoundHttpException     => [404, 'Resource not found.'],
-                $e instanceof HttpExceptionInterface    => [$e->getStatusCode(), $e->getMessage() ?: 'Request failed.'],
-                default                                 => [500, 'Server error.'],
+                $e instanceof AuthenticationException => [401, 'Unauthenticated.'],
+                $e instanceof AuthorizationException  => [403, 'This action is unauthorized.'],
+                $e instanceof NotFoundHttpException   => [404, 'Resource not found.'],
+                $e instanceof HttpExceptionInterface  => [$e->getStatusCode(), $e->getMessage() ?: 'Request failed.'],
+                default                               => [500, 'Server error.'],
             };
 
             return response()->json(['message' => $message], $status);
